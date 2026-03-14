@@ -137,6 +137,7 @@ async def delete_analysis(session_id: str):
     output_dir = os.path.join(OUTPUTS_DIR, session_id)
     if os.path.exists(output_dir):
         import shutil
+
         shutil.rmtree(output_dir, ignore_errors=True)
 
     for ext in (".csv", ".xlsx", ".xls"):

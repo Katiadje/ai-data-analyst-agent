@@ -20,7 +20,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown("""
+st.markdown(
+    """
 <style>
   [data-testid="stAppViewContainer"] { background: #0F0F1A; color: #E2E8F0; }
   [data-testid="stSidebar"] { background: #13131F; border-right: 1px solid #1E1E35; }
@@ -120,10 +121,13 @@ st.markdown("""
   section[data-testid="stSidebar"] * { color: #CBD5E1 !important; }
   code { background: #1A1A2E !important; color: #A78BFA !important; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def upload_file(file_bytes: bytes, filename: str) -> dict:
     r = requests.post(
@@ -188,12 +192,15 @@ with st.sidebar:
 
 # ── Hero ───────────────────────────────────────────────────────────────────────
 
-st.markdown("""
+st.markdown(
+    """
 <div class="hero">
   <h1>🤖 AI Data Analyst Agent</h1>
   <p>Drop your dataset. The agent does the rest — profiling, insights, visualizations, report.</p>
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # ── Session State ──────────────────────────────────────────────────────────────
@@ -220,7 +227,10 @@ with col_upload:
 with col_info:
     st.markdown("### 💡 Try with sample data")
     st.markdown("Don't have a dataset? Use any public CSV:")
-    st.code("https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv", language="text")
+    st.code(
+        "https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv",
+        language="text",
+    )
     sample_url = st.text_input("Or paste a direct CSV URL:", placeholder="https://...")
 
 run_col, _ = st.columns([1, 3])
@@ -280,7 +290,9 @@ if st.session_state.session_id and not st.session_state.analysis_done:
         with progress_placeholder.container():
             st.markdown(f"**{step}**")
             st.progress(progress / 100)
-            st.markdown(f"<p class='progress-step'>⏳ {progress}% complete...</p>", unsafe_allow_html=True)
+            st.markdown(
+                f"<p class='progress-step'>⏳ {progress}% complete...</p>", unsafe_allow_html=True
+            )
 
         if status == "done":
             st.session_state.analysis_done = True
@@ -316,35 +328,47 @@ if st.session_state.analysis_done and st.session_state.result:
     n_charts = len(charts)
 
     with k1:
-        st.markdown(f"""<div class="metric-card">
+        st.markdown(
+            f"""<div class="metric-card">
           <h3>📦 Rows</h3>
-          <div class="value">{shape.get('rows', 0):,}</div>
-          <div class="sub">{shape.get('columns', 0)} columns</div>
-        </div>""", unsafe_allow_html=True)
+          <div class="value">{shape.get("rows", 0):,}</div>
+          <div class="sub">{shape.get("columns", 0)} columns</div>
+        </div>""",
+            unsafe_allow_html=True,
+        )
     with k2:
-        st.markdown(f"""<div class="metric-card">
+        st.markdown(
+            f"""<div class="metric-card">
           <h3>✅ Data Quality</h3>
           <div class="value" style="color:{quality_color(quality)}">{quality:.0f}/100</div>
           <div class="sub">Quality score</div>
-        </div>""", unsafe_allow_html=True)
+        </div>""",
+            unsafe_allow_html=True,
+        )
     with k3:
-        st.markdown(f"""<div class="metric-card">
+        st.markdown(
+            f"""<div class="metric-card">
           <h3>🔍 Insights</h3>
           <div class="value">{n_insights}</div>
           <div class="sub">Key findings</div>
-        </div>""", unsafe_allow_html=True)
+        </div>""",
+            unsafe_allow_html=True,
+        )
     with k4:
-        st.markdown(f"""<div class="metric-card">
+        st.markdown(
+            f"""<div class="metric-card">
           <h3>⏱️ Duration</h3>
           <div class="value">{duration:.1f}s</div>
           <div class="sub">{n_charts} charts generated</div>
-        </div>""", unsafe_allow_html=True)
+        </div>""",
+            unsafe_allow_html=True,
+        )
 
     st.markdown("---")
 
-    tab_report, tab_insights, tab_charts, tab_profile, tab_quality = st.tabs([
-        "📝 Report", "🔍 Insights", "📊 Charts", "🗂️ Profile", "⚠️ Quality"
-    ])
+    tab_report, tab_insights, tab_charts, tab_profile, tab_quality = st.tabs(
+        ["📝 Report", "🔍 Insights", "📊 Charts", "🗂️ Profile", "⚠️ Quality"]
+    )
 
     with tab_report:
         st.markdown("### Executive Report")
@@ -358,12 +382,15 @@ if st.session_state.analysis_done and st.session_state.result:
         st.markdown("### 🔍 Key Insights")
         for ins in insights.get("key_insights", []):
             importance = ins.get("importance", "medium")
-            st.markdown(f"""
+            st.markdown(
+                f"""
 <div class="insight-card {importance}">
   <span class="insight-badge badge-{importance}">{importance}</span>
-  <h4>{ins.get('title', '')}</h4>
-  <p>{ins.get('description', '')}</p>
-</div>""", unsafe_allow_html=True)
+  <h4>{ins.get("title", "")}</h4>
+  <p>{ins.get("description", "")}</p>
+</div>""",
+                unsafe_allow_html=True,
+            )
 
         if insights.get("business_implications"):
             st.markdown("### 💼 Business Implications")
@@ -405,16 +432,19 @@ if st.session_state.analysis_done and st.session_state.result:
         cols_data = profile.get("column_profiles", [])
         if cols_data:
             import pandas as pd
-            df_profile = pd.DataFrame([
-                {
-                    "Column": c.get("name", ""),
-                    "Type": c.get("dtype", ""),
-                    "Category": c.get("category", ""),
-                    "Missing %": f"{c.get('missing_pct', 0):.1f}%",
-                    "Unique": c.get("unique_count", 0),
-                }
-                for c in cols_data
-            ])
+
+            df_profile = pd.DataFrame(
+                [
+                    {
+                        "Column": c.get("name", ""),
+                        "Type": c.get("dtype", ""),
+                        "Category": c.get("category", ""),
+                        "Missing %": f"{c.get('missing_pct', 0):.1f}%",
+                        "Unique": c.get("unique_count", 0),
+                    }
+                    for c in cols_data
+                ]
+            )
             st.dataframe(df_profile, use_container_width=True, hide_index=True)
 
     with tab_quality:
@@ -424,13 +454,16 @@ if st.session_state.analysis_done and st.session_state.result:
 
         col_q1, col_q2 = st.columns([1, 3])
         with col_q1:
-            st.markdown(f"""
+            st.markdown(
+                f"""
 <div style="text-align:center; padding:20px;">
   <div class="quality-ring" style="border-color:{quality_color(quality)}; color:{quality_color(quality)}">
     {quality:.0f}
   </div>
   <p style="color:#64748B; margin-top:8px; font-size:0.85rem;">Quality Score</p>
-</div>""", unsafe_allow_html=True)
+</div>""",
+                unsafe_allow_html=True,
+            )
         with col_q2:
             if quality_issues:
                 st.markdown("**Issues detected:**")

@@ -38,9 +38,11 @@ logger = logging.getLogger(__name__)
 
 # ── State ─────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class AnalysisState:
     """Shared state across all agent nodes."""
+
     file_path: str = ""
     session_id: str = field(default_factory=lambda: uuid.uuid4().hex)
     output_dir: str = ""
@@ -69,14 +71,13 @@ class AnalysisState:
             "charts": self.charts,
             "report_md": self.report_md,
             "duration_s": (
-                round(self.completed_at - self.started_at, 2)
-                if self.completed_at
-                else None
+                round(self.completed_at - self.started_at, 2) if self.completed_at else None
             ),
         }
 
 
 # ── LLM Helpers ───────────────────────────────────────────────────────────────
+
 
 def _build_llm(model: str = "llama-3.3-70b-versatile", temperature: float = 0.2) -> ChatGroq:
     return ChatGroq(
@@ -98,6 +99,7 @@ def _call_llm_json(llm: ChatGroq, system: str, user: str) -> dict[str, Any]:
 
 
 # ── Node Functions ─────────────────────────────────────────────────────────────
+
 
 def node_load(state: AnalysisState) -> AnalysisState:
     logger.info("[node_load] Loading dataset: %s", state.file_path)
@@ -217,6 +219,7 @@ def node_generate_viz(state: AnalysisState) -> AnalysisState:
     state.progress = 72
 
     import pandas as pd
+
     parquet_path = os.path.join(state.output_dir, "_df.parquet")
     df = pd.read_parquet(parquet_path)
 
@@ -239,7 +242,10 @@ def node_generate_viz(state: AnalysisState) -> AnalysisState:
             )
             try:
                 response = llm.invoke(
-                    [SystemMessage(content=CODE_GENERATOR_PROMPT), HumanMessage(content=prompt_user)]
+                    [
+                        SystemMessage(content=CODE_GENERATOR_PROMPT),
+                        HumanMessage(content=prompt_user),
+                    ]
                 )
                 code = response.content.strip()
                 if code.startswith("```"):
@@ -250,12 +256,14 @@ def node_generate_viz(state: AnalysisState) -> AnalysisState:
 
                 result = execute_viz_code(code, df, state.output_dir)
                 if result["success"]:
-                    charts.append({
-                        "id": viz.get("id", uuid.uuid4().hex[:8]),
-                        "title": viz.get("title", "Chart"),
-                        "path": result["path"],
-                        "description": viz.get("description", ""),
-                    })
+                    charts.append(
+                        {
+                            "id": viz.get("id", uuid.uuid4().hex[:8]),
+                            "title": viz.get("title", "Chart"),
+                            "path": result["path"],
+                            "description": viz.get("description", ""),
+                        }
+                    )
                     logger.info("Chart generated: %s", viz.get("title"))
                 else:
                     logger.warning("Chart failed: %s | %s", viz.get("title"), result["error"][:200])
@@ -276,9 +284,7 @@ def node_write_report(state: AnalysisState) -> AnalysisState:
     state.progress = 90
 
     llm = _build_llm(temperature=0.5)
-    chart_descriptions = [
-        f"- {c['title']}: {c.get('description', '')}" for c in state.charts
-    ]
+    chart_descriptions = [f"- {c['title']}: {c.get('description', '')}" for c in state.charts]
     user_msg = (
         f"Dataset profile:\n{json.dumps(state.profile, indent=2)}\n\n"
         f"Key insights:\n{json.dumps(state.insights, indent=2)}\n\n"
@@ -321,11 +327,13 @@ def node_handle_error(state: AnalysisState) -> AnalysisState:
 
 # ── Routing ───────────────────────────────────────────────────────────────────
 
+
 def route_after_load(state: AnalysisState) -> Literal["profile", "error"]:
     return "error" if state.status == "error" else "profile"
 
 
 # ── Graph Construction ────────────────────────────────────────────────────────
+
 
 def build_agent() -> StateGraph:
     graph = StateGraph(AnalysisState)
@@ -354,6 +362,7 @@ def build_agent() -> StateGraph:
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+
 def run_analysis(file_path: str, output_dir: str, session_id: str | None = None) -> dict[str, Any]:
     """Run the full analysis pipeline."""
     os.makedirs(output_dir, exist_ok=True)
@@ -378,8 +387,7 @@ def run_analysis(file_path: str, output_dir: str, session_id: str | None = None)
             "insights": result.get("insights", {}),
             "charts": result.get("charts", []),
             "report_md": result.get("report_md", ""),
-            "duration_s": result.get("completed_at") and round(
-                result["completed_at"] - result["started_at"], 2
-            ),
+            "duration_s": result.get("completed_at")
+            and round(result["completed_at"] - result["started_at"], 2),
         }
     return result.to_dict()

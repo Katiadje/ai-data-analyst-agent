@@ -26,6 +26,7 @@ sns.set_theme(style="whitegrid", palette=PALETTE)
 
 # ── Data Loading ──────────────────────────────────────────────────────────────
 
+
 def load_dataframe(file_path: str) -> pd.DataFrame:
     """Load CSV or Excel file into a DataFrame."""
     path = Path(file_path)
@@ -92,6 +93,7 @@ def get_dataset_summary(df: pd.DataFrame) -> dict[str, Any]:
 
 # ── Safe Code Execution ───────────────────────────────────────────────────────
 
+
 def execute_viz_code(code: str, df: pd.DataFrame, output_dir: str) -> dict[str, Any]:
     """Execute LLM-generated visualization code in a restricted namespace."""
     output_path = os.path.join(output_dir, f"{uuid.uuid4().hex}.png")
@@ -116,6 +118,7 @@ def execute_viz_code(code: str, df: pd.DataFrame, output_dir: str) -> dict[str, 
 
 
 # ── Fallback Visualizations ───────────────────────────────────────────────────
+
 
 def generate_overview_charts(df: pd.DataFrame, output_dir: str) -> list[dict[str, str]]:
     """Generate a guaranteed set of overview charts without LLM code execution."""
@@ -165,8 +168,15 @@ def generate_overview_charts(df: pd.DataFrame, output_dir: str) -> list[dict[str
         corr = df[corr_cols].corr()
         mask = np.triu(np.ones_like(corr, dtype=bool))
         sns.heatmap(
-            corr, mask=mask, annot=True, fmt=".2f", cmap="RdYlBu_r",
-            center=0, ax=ax, linewidths=0.5, square=True,
+            corr,
+            mask=mask,
+            annot=True,
+            fmt=".2f",
+            cmap="RdYlBu_r",
+            center=0,
+            ax=ax,
+            linewidths=0.5,
+            square=True,
             cbar_kws={"shrink": 0.8},
         )
         ax.set_title("Correlation Matrix", fontweight="bold", pad=15)
