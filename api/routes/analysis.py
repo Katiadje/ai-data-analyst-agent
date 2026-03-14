@@ -143,3 +143,4 @@ async def delete_analysis(session_id: str):
         path = os.path.join(UPLOADS_DIR, f"{session_id}{ext}")
         if os.path.exists(path):
             os.remove(path)
+            
