@@ -166,4 +166,3 @@ plt.close()
             result = execute_viz_code(code, df, tmpdir)
             assert result["success"] is False
             assert "error" in result
-            
