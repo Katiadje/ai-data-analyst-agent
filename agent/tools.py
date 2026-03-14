@@ -3,12 +3,10 @@ Tools used by the AI Data Analyst Agent.
 Handles dataset profiling, code execution, and visualization generation.
 """
 
-import json
 import logging
 import os
 import traceback
 import uuid
-from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -84,7 +82,6 @@ def get_dataset_summary(df: pd.DataFrame) -> dict[str, Any]:
 
         summary["columns"].append(col_info)
 
-    # Correlation matrix for numeric columns (top 8)
     numeric_cols = df.select_dtypes(include="number").columns.tolist()[:8]
     if len(numeric_cols) >= 2:
         corr = df[numeric_cols].corr().round(3).to_dict()
@@ -96,10 +93,7 @@ def get_dataset_summary(df: pd.DataFrame) -> dict[str, Any]:
 # ── Safe Code Execution ───────────────────────────────────────────────────────
 
 def execute_viz_code(code: str, df: pd.DataFrame, output_dir: str) -> dict[str, Any]:
-    """
-    Execute LLM-generated visualization code in a restricted namespace.
-    Returns path to saved figure or error details.
-    """
+    """Execute LLM-generated visualization code in a restricted namespace."""
     output_path = os.path.join(output_dir, f"{uuid.uuid4().hex}.png")
 
     namespace: dict[str, Any] = {
@@ -124,21 +118,18 @@ def execute_viz_code(code: str, df: pd.DataFrame, output_dir: str) -> dict[str, 
 # ── Fallback Visualizations ───────────────────────────────────────────────────
 
 def generate_overview_charts(df: pd.DataFrame, output_dir: str) -> list[dict[str, str]]:
-    """
-    Generate a guaranteed set of overview charts without LLM code execution.
-    Used as fallback or supplement.
-    """
+    """Generate a guaranteed set of overview charts without LLM code execution."""
     results: list[dict[str, str]] = []
     numeric_cols = df.select_dtypes(include="number").columns.tolist()
     cat_cols = df.select_dtypes(exclude="number").columns.tolist()
 
-    # 1. Missing values heatmap
+    # 1. Missing values
     if df.isnull().sum().sum() > 0:
         fig, ax = plt.subplots(figsize=(10, 4))
         missing = df.isnull().mean() * 100
         missing = missing[missing > 0].sort_values(ascending=False)
         if not missing.empty:
-            bars = ax.barh(missing.index, missing.values, color="#EC4899")
+            ax.barh(missing.index, missing.values, color="#EC4899")
             ax.set_xlabel("Missing (%)")
             ax.set_title("Missing Values by Column", fontweight="bold", pad=15)
             ax.grid(axis="x", alpha=0.3)
@@ -154,7 +145,7 @@ def generate_overview_charts(df: pd.DataFrame, output_dir: str) -> list[dict[str
         fig, axes = plt.subplots(1, n, figsize=(5 * n, 4))
         if n == 1:
             axes = [axes]
-        for ax, col in zip(axes, cols_to_plot):
+        for ax, col in zip(axes, cols_to_plot, strict=False):
             data = df[col].dropna()
             ax.hist(data, bins=30, color="#4F46E5", edgecolor="white", alpha=0.85)
             ax.set_title(col, fontweight="bold")
@@ -184,12 +175,12 @@ def generate_overview_charts(df: pd.DataFrame, output_dir: str) -> list[dict[str
         plt.close(fig)
         results.append({"id": "correlation", "title": "Correlation Matrix", "path": path})
 
-    # 4. Top categorical column bar chart
+    # 4. Top categorical bar chart
     if cat_cols:
         col = cat_cols[0]
         top_vals = df[col].value_counts().head(10)
         fig, ax = plt.subplots(figsize=(10, 5))
-        bars = ax.bar(range(len(top_vals)), top_vals.values, color=PALETTE * 2)
+        ax.bar(range(len(top_vals)), top_vals.values, color=PALETTE * 2)
         ax.set_xticks(range(len(top_vals)))
         ax.set_xticklabels(top_vals.index, rotation=35, ha="right")
         ax.set_title(f"Top Values — {col}", fontweight="bold", pad=15)

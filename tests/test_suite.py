@@ -9,7 +9,6 @@ import tempfile
 
 import numpy as np
 import pandas as pd
-import pytest
 from fastapi.testclient import TestClient
 
 from api.main import app
@@ -32,7 +31,6 @@ def make_csv_bytes(n: int = 200) -> bytes:
         "tenure_months": rng.integers(1, 60, n),
         "nps_score": rng.integers(0, 10, n),
     })
-    # Add some missing values to make it realistic
     df.loc[rng.choice(n, 15, replace=False), "nps_score"] = np.nan
     return df.to_csv(index=False).encode("utf-8")
 
@@ -102,11 +100,7 @@ class TestAnalysis:
         )
         assert upload_r.status_code == 201
         session_id = upload_r.json()["session_id"]
-
-        # Start analysis (async, returns 202)
-        # Note: in test mode, OPENAI_API_KEY may not be set so we just check the response shape
         analysis_r = client.post(f"/api/v1/analyse/{session_id}")
-        # Either 202 (started) or 500 (if no API key in test env)
         assert analysis_r.status_code in (202, 500)
 
 

@@ -1,9 +1,7 @@
 """Analysis endpoints — trigger and retrieve analysis results."""
 
-import glob
 import os
 import uuid
-from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
 
@@ -15,7 +13,6 @@ router = APIRouter()
 UPLOADS_DIR = os.environ.get("UPLOADS_DIR", "/tmp/ai_analyst_uploads")
 OUTPUTS_DIR = os.environ.get("OUTPUTS_DIR", "/tmp/ai_analyst_outputs")
 
-# In-memory job store (use Redis in production)
 _jobs: dict[str, dict] = {}
 
 
@@ -38,7 +35,6 @@ def _run_job(session_id: str, file_path: str, base_url: str):
     try:
         result = run_analysis(file_path, output_dir, session_id=session_id)
 
-        # Enrich charts with public URLs
         for chart in result.get("charts", []):
             rel_path = os.path.relpath(chart["path"], OUTPUTS_DIR)
             chart["url"] = f"{base_url}/outputs/{rel_path}"
@@ -138,13 +134,11 @@ async def get_analysis(session_id: str) -> AnalysisResponse:
 async def delete_analysis(session_id: str):
     _jobs.pop(session_id, None)
 
-    # Clean up output directory
     output_dir = os.path.join(OUTPUTS_DIR, session_id)
     if os.path.exists(output_dir):
         import shutil
         shutil.rmtree(output_dir, ignore_errors=True)
 
-    # Clean up upload
     for ext in (".csv", ".xlsx", ".xls"):
         path = os.path.join(UPLOADS_DIR, f"{session_id}{ext}")
         if os.path.exists(path):

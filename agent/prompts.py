@@ -16,10 +16,10 @@ Always respond with valid JSON containing:
       "missing_count": int,
       "missing_pct": float,
       "unique_count": int,
-      "stats": {}  // mean, std, min, max for numeric; top_values for categorical
+      "stats": {}
     }
   ],
-  "data_quality_score": float,  // 0-100
+  "data_quality_score": float,
   "quality_issues": [str],
   "key_observations": [str]
 }
@@ -31,7 +31,7 @@ Based on the dataset profile and a sample of the data, identify the most importa
 
 Return valid JSON:
 {
-  "executive_summary": str,  // 2-3 sentences, business-oriented
+  "executive_summary": str,
   "key_insights": [
     {
       "title": str,
@@ -40,13 +40,13 @@ Return valid JSON:
       "insight_type": "trend" | "correlation" | "anomaly" | "distribution" | "comparison"
     }
   ],
-  "recommended_analyses": [str],  // next steps for deeper analysis
+  "recommended_analyses": [str],
   "business_implications": [str]
 }
 
 Be concise, specific, and avoid jargon. Only return the JSON object."""
 
-VIZ_PLANNER_PROMPT = """You are a data visualization expert. Based on the dataset profile and insights, 
+VIZ_PLANNER_PROMPT = """You are a data visualization expert. Based on the dataset profile and insights,
 plan the most impactful visualizations to include in the analysis report.
 
 Return valid JSON:
@@ -67,7 +67,7 @@ Return valid JSON:
 
 Limit to 4-6 most impactful visualizations. Only return the JSON object."""
 
-CODE_GENERATOR_PROMPT = """You are a Python expert. Generate clean, executable pandas + matplotlib/seaborn code 
+CODE_GENERATOR_PROMPT = """You are a Python expert. Generate clean, executable pandas + matplotlib/seaborn code
 for the requested visualization.
 
 Rules:
@@ -83,7 +83,7 @@ Rules:
 - Only return the Python code, no markdown, no explanation."""
 
 REPORT_WRITER_PROMPT = """You are a senior data analyst writing an executive report.
-Based on the dataset profile, insights, and visualization descriptions, write a professional 
+Based on the dataset profile, insights, and visualization descriptions, write a professional
 narrative analysis report in Markdown format.
 
 The report must include:

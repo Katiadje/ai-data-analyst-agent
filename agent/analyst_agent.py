@@ -13,13 +13,12 @@ import os
 import time
 import uuid
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Literal
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
-from langgraph.graph import END, START, StateGraph
 from langchain_groq import ChatGroq
+from langgraph.graph import END, START, StateGraph
+
 from agent.prompts import (
     CODE_GENERATOR_PROMPT,
     DATA_PROFILER_PROMPT,
@@ -42,26 +41,19 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AnalysisState:
     """Shared state across all agent nodes."""
-    # Input
     file_path: str = ""
     session_id: str = field(default_factory=lambda: uuid.uuid4().hex)
     output_dir: str = ""
-
-    # Runtime
-    status: str = "pending"  # pending | running | done | error
+    status: str = "pending"
     current_step: str = ""
-    progress: int = 0  # 0-100
+    progress: int = 0
     error: str | None = None
-
-    # Data
     dataset_summary: dict[str, Any] = field(default_factory=dict)
     profile: dict[str, Any] = field(default_factory=dict)
     insights: dict[str, Any] = field(default_factory=dict)
     viz_plan: dict[str, Any] = field(default_factory=dict)
     charts: list[dict[str, str]] = field(default_factory=list)
     report_md: str = ""
-
-    # Timing
     started_at: float = field(default_factory=time.time)
     completed_at: float | None = None
 
@@ -94,11 +86,10 @@ def _build_llm(model: str = "llama-3.3-70b-versatile", temperature: float = 0.2)
     )
 
 
-def _call_llm_json(llm: ChatOpenAI, system: str, user: str) -> dict[str, Any]:
+def _call_llm_json(llm: ChatGroq, system: str, user: str) -> dict[str, Any]:
     """Call LLM and parse JSON response. Raises on parse failure."""
     response = llm.invoke([SystemMessage(content=system), HumanMessage(content=user)])
     text = response.content.strip()
-    # Strip markdown code fences if present
     if text.startswith("```"):
         text = text.split("```")[1]
         if text.startswith("json"):
@@ -115,11 +106,9 @@ def node_load(state: AnalysisState) -> AnalysisState:
     state.status = "running"
 
     try:
-        import pandas as pd
         df = load_dataframe(state.file_path)
         summary = get_dataset_summary(df)
         state.dataset_summary = summary
-        # Persist df for downstream nodes via temp parquet
         parquet_path = os.path.join(state.output_dir, "_df.parquet")
         df.to_parquet(parquet_path, index=False)
         state.progress = 15
@@ -148,7 +137,6 @@ def node_profile(state: AnalysisState) -> AnalysisState:
         state.progress = 40
     except Exception as e:
         logger.warning("LLM profiling failed, using raw summary. Error: %s", e)
-        # Fallback: build basic profile from summary
         state.profile = {
             "shape": state.dataset_summary.get("shape", {}),
             "column_profiles": state.dataset_summary.get("columns", []),
@@ -232,13 +220,11 @@ def node_generate_viz(state: AnalysisState) -> AnalysisState:
     parquet_path = os.path.join(state.output_dir, "_df.parquet")
     df = pd.read_parquet(parquet_path)
 
-    # Always generate guaranteed overview charts
     charts = generate_overview_charts(df, state.output_dir)
 
-    # Generate LLM-planned charts
     if state.viz_plan.get("visualizations"):
         llm = _build_llm(temperature=0.1)
-        for viz in state.viz_plan["visualizations"][:4]:  # Max 4 LLM charts
+        for viz in state.viz_plan["visualizations"][:4]:
             prompt_user = (
                 f"Generate Python code for this visualization:\n"
                 f"Chart type: {viz.get('chart_type')}\n"
@@ -319,7 +305,6 @@ def node_finalize(state: AnalysisState) -> AnalysisState:
     state.status = "done"
     state.completed_at = time.time()
 
-    # Clean up temp parquet
     parquet_path = os.path.join(state.output_dir, "_df.parquet")
     if os.path.exists(parquet_path):
         os.remove(parquet_path)
@@ -370,17 +355,7 @@ def build_agent() -> StateGraph:
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def run_analysis(file_path: str, output_dir: str, session_id: str | None = None) -> dict[str, Any]:
-    """
-    Run the full analysis pipeline.
-
-    Args:
-        file_path: Path to the uploaded CSV/Excel file.
-        output_dir: Directory to save generated charts and artifacts.
-        session_id: Optional custom session ID.
-
-    Returns:
-        Result dict with profile, insights, charts, and report.
-    """
+    """Run the full analysis pipeline."""
     os.makedirs(output_dir, exist_ok=True)
 
     initial_state = AnalysisState(
@@ -390,10 +365,8 @@ def run_analysis(file_path: str, output_dir: str, session_id: str | None = None)
     )
 
     agent = build_agent()
-    # Fix
     result = agent.invoke(initial_state)
 
-    # LangGraph peut retourner un dict ou l'objet selon la version
     if isinstance(result, dict):
         return {
             "session_id": result.get("session_id", session_id),
@@ -405,6 +378,8 @@ def run_analysis(file_path: str, output_dir: str, session_id: str | None = None)
             "insights": result.get("insights", {}),
             "charts": result.get("charts", []),
             "report_md": result.get("report_md", ""),
-            "duration_s": result.get("completed_at") and round(result["completed_at"] - result["started_at"], 2),
+            "duration_s": result.get("completed_at") and round(
+                result["completed_at"] - result["started_at"], 2
+            ),
         }
     return result.to_dict()
